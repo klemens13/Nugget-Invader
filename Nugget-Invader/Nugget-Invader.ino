@@ -1,7 +1,7 @@
-#define up D6 // left button
-#define dn D3 // right button
-#define lt D7 // left button
-#define rt D5 // right button
+#define up D5 // up button
+#define dn D6 // down button
+#define lt D0 // left button
+#define rt D7 // right button
 
 #include "SH1106Wire.h"
 #include "Buttons.h"
