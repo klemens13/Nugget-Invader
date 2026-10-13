@@ -1,62 +1,74 @@
 #include "Buttons.h"
 
-unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
-unsigned long debounceDelay = 100;    // the debounce time; increase if the output flickers
+const unsigned long Buttons::debounceDelay; // definition of static const
 
-// button states and previous states
-int upBtnState = 0;
-int dnBtnState = 0; 
-int ltBtnState = 0; 
-int rtBtnState = 0; 
-
-int prevPress = 0;
-int currPress = 0;
+// press codes for the Vega 2 layout
+#define PRESS_NONE   0
+#define PRESS_UP     1
+#define PRESS_DOWN   2
+#define PRESS_A      3 // lt slot -> A button
+#define PRESS_B      4 // rt slot -> B button
 
 Buttons::Buttons(int8_t upBtnPin, int8_t dnBtnPin, int8_t ltBtnPin, int8_t rtBtnPin) {
   this->upBtnPin = upBtnPin;
   this->dnBtnPin = dnBtnPin;
   this->ltBtnPin = ltBtnPin;
   this->rtBtnPin = rtBtnPin;
+
+  btnPins[0] = upBtnPin;
+  btnPins[1] = dnBtnPin;
+  btnPins[2] = ltBtnPin;
+  btnPins[3] = rtBtnPin;
   
   init();
 }
 
-// get pressed buttons with debounce
+// Read all four buttons with proper per-button debouncing.
+// Returns a one-shot press code (1..4) when a button transitions
+// from released to pressed; returns -1 otherwise so callers can
+// ignore spurious repeats while a button is held down.
 int8_t Buttons::getPress() {
-  upBtnState = digitalRead(upBtnPin);
-  dnBtnState = digitalRead(dnBtnPin);
-  ltBtnState = digitalRead(ltBtnPin);
-  rtBtnState = digitalRead(rtBtnPin);
+  int8_t pressCode = PRESS_NONE;
+  int releasedCount = 0;
 
-  if      (upBtnState == 0) { currPress = 1; }
-  else if (dnBtnState == 0) { currPress = 2; }
-  else if (ltBtnState == 0) { currPress = 3; }
-  else if (rtBtnState == 0) { currPress = 4; }
-  else currPress = 0;
+  for (int i = 0; i < 4; i++) {
+    int rawState = digitalRead(btnPins[i]);
+    if (rawState == HIGH) releasedCount++;
 
-//  if (currPress!=prevPress) {
-//    lastDebounceTime = millis();
-//  }
-//
-//  if ((millis() - lastDebounceTime) > debounceDelay) {
-    if (currPress!= prevPress and currPress>0) {
-      prevPress = currPress;
-      pressStatus = currPress;  
+    // if the raw reading changed, restart the debounce timer
+    if (rawState != lastRawState[i]) {
+      lastDebounceTime[i] = millis();
+      lastRawState[i] = rawState;
     }
-    else {
-      prevPress = currPress;
-      pressStatus = -1;
+
+    // once the reading has been stable for debounceDelay ms, accept it
+    if ((millis() - lastDebounceTime[i]) > debounceDelay) {
+      if (rawState != stableState[i]) {
+        stableState[i] = rawState;
+        // buttons wired to GND with INPUT_PULLUP: LOW == pressed
+        if (stableState[i] == LOW) {
+          pressCode = i + 1; // 1=UP, 2=DOWN, 3=A, 4=B
+        }
+      }
     }
-    
-    return pressStatus;
-//  }
+  }
+
+  if (pressCode != PRESS_NONE) {
+    pressStatus = pressCode;
+  } else if (releasedCount >= 2) {
+    // all buttons have settled back to released -> clear latched press so
+    // the same button can fire again after a new press+release cycle
+    pressStatus = -1;
+  }
+
+  return pressStatus;
 }
 
 // wrapper functions to check if individual buttons pressed
-bool Buttons::upPressed() { return(pressStatus==1); }
-bool Buttons::dnPressed() { return(pressStatus==2); }
-bool Buttons::ltPressed() { return(pressStatus==3); }
-bool Buttons::rtPressed() { return(pressStatus==4); }
+bool Buttons::upPressed() { return(pressStatus==PRESS_UP); }
+bool Buttons::dnPressed() { return(pressStatus==PRESS_DOWN); }
+bool Buttons::ltPressed() { return(pressStatus==PRESS_A); } // Vega 2: A
+bool Buttons::rtPressed() { return(pressStatus==PRESS_B); } // Vega 2: B
 
 void Buttons::init() {
   pinMode(upBtnPin, INPUT_PULLUP);
