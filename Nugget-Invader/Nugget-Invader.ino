@@ -1,7 +1,27 @@
-#define up D5 // up button
-#define dn D6 // down button
-#define lt D0 // left button
-#define rt D7 // right button
+// ============================================================
+// Hackheld Vega 2 (Spacehuhn) button layout
+// ============================================================
+// The Vega 2 has 4 user buttons on the face of the device:
+//
+//        [ UP ]
+//   [ A ]          [ B ]
+//        [ DOWN ]
+//
+// Sketch mapping (up/dn/lt/rt used by MenuInterface & Buttons class):
+//   up -> UP button    : scroll menu upward
+//   dn -> DOWN button  : scroll menu downward
+//   lt -> A button     : "back" / cancel action
+//   rt -> B button     : "select" / confirm action
+//
+// ESP8266 GPIO notes:
+//   - D0 (GPIO16) is avoided because it has no internal pull-up/down and
+//     cannot generate normal pin interrupts.
+//   - D3/D4 (GPIO9/GPIO10) are reserved for the SPI flash on ESP-12 modules.
+//   - D8 (GPIO15) must be LOW at boot, so it stays free for the NeoPixel.
+#define up D5 // UP button   (GPIO14 / D5)
+#define dn D6 // DOWN button (GPIO12 / D6)
+#define lt D1 // A button    (GPIO5  / D1)
+#define rt D2 // B button    (GPIO4  / D2)
 
 #include "SH1106Wire.h"
 #include "Buttons.h"
