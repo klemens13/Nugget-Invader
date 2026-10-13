@@ -24,6 +24,7 @@
 #define rt D2 // B button    (GPIO4  / D2)
 
 #include "SH1106Wire.h"
+#include "SSD1306Wire.h"
 #include "Buttons.h"
 #include "MenuInterface.h"
 #include "Graphics.h"
@@ -35,8 +36,30 @@
 
 Adafruit_NeoPixel pixels {1, D8, NEO_GRB + NEO_KHZ800 }; // initialize 1 NeoPixel on D8
 
-WiFiScanner wifiScanner; // create wifiScanner object
-SH1106Wire display(0x3C, SDA, SCL); // use builtin i2C
+// ---- screen objects (0.96" .. 1.3" auto-select at boot) ----------
+// SH1106Wire: 1.27"/1.3" 128x64 panels (Vega 2 stock OLED)
+// SSD1306Wire: 0.96"/1.3" 128x64 and 128x128 panels
+// Both drivers share the OLEDDisplay base class, so a single global
+// reference is enough for all drawing calls in the project.
+SH1106Wire  sh1106Display(0x3C, SDA, SCL);
+SSD1306Wire ssd1306Display(0x3C, SDA, SCL);
+OLEDDisplay& display = sh1106Display; // rebound below if SSD1306 detected
+
+void initDetectedDisplay() {
+  // probe the I2C bus (0x3C / 0x3D) and identify size + controller
+  bool found = detectScreen();
+  Serial.println(found ? ("Display detected: " + String(screenProfile.name))
+                       : "No display found, using stock 1.27\" SH1106 defaults");
+
+  // rebind the shared display reference to the matching driver
+  if (screenProfile.sh1106) display = sh1106Display;
+  else                       display = ssd1306Display;
+
+  display.init();
+  display.flipScreenVertically();
+  display.setTextAlignment(TEXT_ALIGN_LEFT);
+  display.setFont(ArialMT_Plain_10); // 10px font fits every 0.96"-1.3" panel
+}
 Buttons nuggButtons(up,dn,lt,rt);
 
 MenuInterface invaderMenu; // blank menu canvas
@@ -102,13 +125,10 @@ void setup() {
   Serial.println("by Alex Lynd");
   Serial.println("--------------------------");
 
-  // add to menu interface init
-  display.init();
-  display.flipScreenVertically();
-  display.setTextAlignment(TEXT_ALIGN_LEFT);
-  display.setFont(DejaVu_Sans_Mono_10);
+  // auto-detect screen size (0.96" - 1.3") and initialize the right driver
+  initDetectedDisplay();
 
-  display.drawXbm(0,0,128,64,invader_bits);
+  display.drawXbm(0,0,scrPx(128),scrPx(64),invader_bits);
   display.display();
   delay(1500);
   display.clear(); display.display();

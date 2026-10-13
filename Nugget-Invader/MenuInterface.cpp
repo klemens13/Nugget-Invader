@@ -27,18 +27,35 @@ void MenuInterface::addLoader(boolean ready, uint8_t timeEstimate) {
   }
 }
 
+// ---- screen-adaptive drawing helpers ------------------------------
+// All bitmaps are designed for a 128x64 panel. scrPx() scales every
+// coordinate so the same layout maps onto taller (1.3" 128x128) panels,
+// and navbar/header positions are derived from scrH() instead of the
+// hard-coded y=53/54/56 values.
+
 void MenuInterface::addTitle() {
   menuText.toUpperCase();
 
-  ::display.drawXbm(Navbar_Outline_x_hot, Navbar_Outline_y_hot, Navbar_Outline_width, Navbar_Outline_height, Navbar_Outline_bits);
-  ::display.drawXbm(Arrow_Left_x_hot, Arrow_Left_y_hot, Arrow_Left_width, Arrow_Left_height, Arrow_Left_bits);
+  // navbar outline sits at the bottom of any screen size
+  ::display.drawXbm(scrPx(Navbar_Outline_x_hot),
+                    (int)scrH() - scrPx(64 - Navbar_Outline_y_hot),
+                    scrPx(Navbar_Outline_width), scrPx(Navbar_Outline_height),
+                    Navbar_Outline_bits);
+
+  int arrowY = (int)scrH() - scrPx(64 - Arrow_Left_y_hot);
+  ::display.drawXbm(scrPx(Arrow_Left_x_hot), arrowY,
+                    scrPx(Arrow_Left_width), scrPx(Arrow_Left_height), Arrow_Left_bits);
 
   if (numArrows != 1) {
-    ::display.drawXbm(Arrow_Right_x_hot, Arrow_Right_y_hot, Arrow_Right_width, Arrow_Right_height, Arrow_Right_bits);
+    ::display.drawXbm(scrW() - scrPx(64 - Arrow_Right_x_hot) - scrPx(2), arrowY,
+                      scrPx(Arrow_Right_width), scrPx(Arrow_Right_height), Arrow_Right_bits);
   }
 
-  if (::display.getStringWidth(menuText) < 101) {
-    ::display.drawString(((104 - ::display.getStringWidth(menuText)) / 2) + 12, 54, menuText);
+  int textW = ::display.getStringWidth(menuText);
+  int usable = scrPx(104);
+  if (textW < usable) {
+    ::display.drawString(((usable - textW) / 2) + scrPx(12),
+                         (int)scrH() - scrPx(10), menuText);
   }
 }
 
@@ -47,9 +64,11 @@ void MenuInterface::addHeader(String headerText, String secondaryText) {
   this->secondaryText = secondaryText;
   headerEnabled = true;
 
-  ::display.drawXbm(Window_Header_x_hot, Window_Header_y_hot, Window_Header_width, Window_Header_height, Window_Header_bits);
-  ::display.drawString(3, 0, headerText);
-  ::display.drawString(94, 0, secondaryText);
+  ::display.drawXbm(Window_Header_x_hot, Window_Header_y_hot,
+                    scrPx(Window_Header_width), scrPx(Window_Header_height),
+                    Window_Header_bits);
+  ::display.drawString(scrPx(3), Window_Header_y_hot, headerText);
+  ::display.drawString(scrW() - scrPx(34), Window_Header_y_hot, secondaryText);
 }
 
 bool notInSelectPool(String selectText) {
@@ -96,13 +115,18 @@ void MenuInterface::addScroller(String* scrollerTextValues, void (**scrollerMeth
 
 void MenuInterface::updateScroller() {
 
-  for (uint8_t i = (scrollerPos / 5) * 5; i < ((scrollerPos / 5) * 5) + 5; i++) {
+  uint8_t rows = scrRows();                 // rows that fit current screen
+  int rowH    = scrPx(10);
+  int contentTop = scrPx(15);               // below the window header strip
+
+  for (uint8_t i = (scrollerPos / rows) * rows; i < ((scrollerPos / rows) * rows) + rows; i++) {
     if (i >= numScrollerValues) break;
-    display.drawString(4, (i % 5) * 10, scrollerTextValues[i]);
+    display.drawString(scrPx(4), contentTop + (i % rows) * rowH, scrollerTextValues[i]);
   }
 
   // draw selector line
-  display.drawLine(0, (scrollerPos % 5 * 10) + 2, 0, (scrollerPos % 5 * 10) + 10);
+  display.drawLine(0, contentTop + (scrollerPos % rows * rowH) + scrPx(2),
+                   0, contentTop + (scrollerPos % rows * rowH) + rowH);
 }
 
 
@@ -133,7 +157,7 @@ void MenuInterface::addDashboard(unsigned char* dbGraphics, String* dbText, uint
   this->dbGraphics = dbGraphics;
   this->dbText = dbText;
   this->dbCount = dbCount;
-  ::display.drawXbm(0, 15, 128, 38, dbGraphics); // graphic must match exact height
+  ::display.drawXbm(0, scrPx(15), scrPx(128), scrPx(38), dbGraphics); // graphic scales with panel
   // for (int i=0; i<dbCount; i++) {
   //   //
   // }
@@ -141,37 +165,44 @@ void MenuInterface::addDashboard(unsigned char* dbGraphics, String* dbText, uint
 
 void MenuInterface::updateFooter() {
   if (footerEnabled) {
+    int navbarY = (int)scrH() - scrPx(11); // top of bottom navbar strip
+    int textY   = (int)scrH() - scrPx(10); // navbar text row (was y=54 on 64px)
     if (dynamicFooter) {
       footerText = footerTextValues[scrollerPos];
       footerText.toUpperCase();
 
       // divider for arrow
-      ::display.drawLine(0, 54, 127, 54);
-      ::display.drawLine(0, 53, 127, 53);
-      ::display.drawLine(118, 54, 118, 63);
-      ::display.drawLine(117, 54, 117, 63);
+      ::display.drawLine(0, textY, scrW()-1, textY);
+      ::display.drawLine(0, textY - 1, scrW()-1, textY - 1);
+      ::display.drawLine(scrW() - scrPx(10), textY, scrW() - scrPx(10), (int)scrH()-1);
+      ::display.drawLine(scrW() - scrPx(11), textY, scrW() - scrPx(11), (int)scrH()-1);
 
 
-      ::display.drawXbm(0,0,128,64,scrollerIconBits[scrollerPos]);
-      ::display.drawXbm(Arrow_Right_x_hot,Arrow_Right_y_hot,Arrow_Right_width,Arrow_Right_height,Arrow_Right_bits);
+      ::display.drawXbm(0,0,scrPx(128),scrPx(64),scrollerIconBits[scrollerPos]);
+      ::display.drawXbm(scrW() - scrPx(6), textY + scrPx(2),
+                        Arrow_Right_width, Arrow_Right_height, Arrow_Right_bits);
 
-      ::display.drawString(0, 54, footerText);
+      ::display.drawString(0, textY, footerText);
 
     }
     else {
       footerText.toUpperCase();
-      ::display.drawXbm(Navbar_Outline_x_hot, Navbar_Outline_y_hot, Navbar_Outline_width, Navbar_Outline_height, Navbar_Outline_bits);
-      
+      ::display.drawXbm(scrPx(Navbar_Outline_x_hot), navbarY,
+                        scrPx(Navbar_Outline_width), scrPx(Navbar_Outline_height), Navbar_Outline_bits);
+
       if (navCount==2){
-        ::display.drawXbm(Arrow_Right_x_hot,Arrow_Right_y_hot,Arrow_Right_width,Arrow_Right_height,Arrow_Right_bits);
+        ::display.drawXbm(scrW() - scrPx(6), textY + scrPx(2),
+                          Arrow_Right_width, Arrow_Right_height, Arrow_Right_bits);
       }
-      ::display.drawXbm(Arrow_Left_x_hot,Arrow_Left_y_hot,Arrow_Left_width,Arrow_Left_height,Arrow_Left_bits);
-      
-      if (::display.getStringWidth(footerText) < 101) {
-        ::display.drawString(((104 - ::display.getStringWidth(footerText)) / 2) + 12, 54, footerText);
+      ::display.drawXbm(scrPx(Arrow_Left_x_hot), textY + scrPx(2),
+                        Arrow_Left_width, Arrow_Left_height, Arrow_Left_bits);
+
+      int usable = scrPx(104);
+      if (::display.getStringWidth(footerText) < usable) {
+        ::display.drawString(((usable - ::display.getStringWidth(footerText)) / 2) + scrPx(12), textY, footerText);
       }
       else {
-        ::display.drawString(56,54,"...");
+        ::display.drawString(scrPx(56), textY, "...");
       }
     }
   }
@@ -181,12 +212,12 @@ void MenuInterface::updateFooter() {
 void MenuInterface::addSimpleMonitor(uint8_t monitorCount) {
   this->monitorCount = monitorCount;
   monitorEn = true;
-  ::display.drawString(0,17,"Deauthing "+(String) monitorCount);
-  ::display.drawString(0,27,"clients from");
+  ::display.drawString(0,scrPx(17),"Deauthing "+(String) monitorCount);
+  ::display.drawString(0,scrPx(27),"clients from");
   String tmpBSSID = apList[scrollIndex][0];
   tmpBSSID.replace(":","");
-  ::display.drawString(0,37,tmpBSSID);
-  ::display.drawXbm(4,0,128,64,attack_bits);
+  ::display.drawString(0,scrPx(37),tmpBSSID);
+  ::display.drawXbm(scrPx(4),0,scrPx(128),scrPx(64),attack_bits);
   // wifiScanner.deauthClients();
 
 }

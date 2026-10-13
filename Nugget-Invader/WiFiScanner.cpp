@@ -204,8 +204,8 @@ esppl_sniffing_start();
 
       ::display.clear();
       uint8_t progress = (((currTime-prevTime)/1000));
-      ::display.drawString(3,20,"Scanning for Clients");
-      ::display.drawProgressBar(2, 40, 124, 6, map(progress, 0,scanTime,0,100));
+      ::display.drawString(scrPx(3), scrPx(20), "Scanning for Clients");
+      ::display.drawProgressBar(scrPx(2), scrPx(40), scrW()-scrPx(4), scrPx(6), map(progress, 0,scanTime,0,100));
       ::display.display();
     // }
   } 
@@ -351,20 +351,20 @@ void WiFiScanner::monMode() {
       display.clear();
 
       if (pktType.equals("DEAUTH") or pktType.equals("Dissasoc")) {
-        display.drawXbm(4,0,128,64,attack_bits);
+        display.drawXbm(scrPx(4),0,scrPx(128),scrPx(64),attack_bits);
         pixels.setPixelColor(0, pixels.Color(150,0, 0));
         delay(500);
       }
       else if (pktType.equals("Re-Assoc")) {
-        display.drawXbm(4,0,128,64,reload_bits);
+        display.drawXbm(scrPx(4),0,scrPx(128),scrPx(64),reload_bits);
         pixels.setPixelColor(0, pixels.Color(0,0,150));
       }
       else if (pktType.equals("Control") or pktType.equals("Beacon")) {
-        display.drawXbm(4,0,128,64,low_signal_bits);
+        display.drawXbm(scrPx(4),0,scrPx(128),scrPx(64),low_signal_bits);
         pixels.setPixelColor(0, pixels.Color(0,0, 150));
       }
       else {
-        display.drawXbm(4,0,128,64,medium_signal_bits);
+        display.drawXbm(scrPx(4),0,scrPx(128),scrPx(64),medium_signal_bits);
         pixels.setPixelColor(0, pixels.Color(0,150, 0));
       }
       pixels.show();
@@ -372,19 +372,19 @@ void WiFiScanner::monMode() {
       display.drawXbm(Window_Header_x_hot, Window_Header_y_hot, Window_Header_width, Window_Header_height, Window_Header_bits);
       display.drawXbm(Navbar_Outline_x_hot, Navbar_Outline_y_hot, Navbar_Outline_width, Navbar_Outline_height, Navbar_Outline_bits);
       display.drawXbm(Arrow_Left_x_hot,Arrow_Left_y_hot,Arrow_Left_width,Arrow_Left_height,Arrow_Left_bits);
-      ::display.drawString(((104 - ::display.getStringWidth("PACKET MONITOR")) / 2) + 12, 54, "PACKET MONITOR");
+      ::display.drawString(((scrPx(104) - ::display.getStringWidth("PACKET MONITOR")) / 2) + scrPx(12), (int)scrH() - scrPx(10), "PACKET MONITOR");
 
       srcMac.replace(":","");
       srcMac.toUpperCase();
-      display.drawString(3,0, srcMac);
-      display.drawString(94, 0, "CH:"+ (String) ch);
+      display.drawString(scrPx(3),0, srcMac);
+      display.drawString(scrW()-scrPx(34), 0, "CH:"+ (String) ch);
 
-      display.drawString(0,17,"FT: "+pktType);
-      display.drawString(0,27,"RSSI: "+ (String) rssi);
+      display.drawString(0,scrPx(17),"FT: "+pktType);
+      display.drawString(0,scrPx(27),"RSSI: "+ (String) rssi);
 
       dstMac.replace(":","");
       dstMac.toUpperCase();
-      display.drawString(0,37,dstMac);
+      display.drawString(0,scrPx(37),dstMac);
 
 
 
