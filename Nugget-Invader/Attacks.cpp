@@ -21,7 +21,7 @@ void Attacks::selectAP() {
     attacksSelectAP.addNav(invaderToolMenu, Attacks::selectClients); // add arrows for navigation
     
     // implement loader method
-    ::display.drawString(4,30,"Scanning for AP's...");
+    ::display.drawString(scrPx(4),scrPx(30),"Scanning for AP's...");
 
     ::display.display();
     wifiScanner.scanAPs();

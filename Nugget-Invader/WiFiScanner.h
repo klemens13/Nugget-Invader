@@ -3,6 +3,7 @@
 #include "Arduino.h"
 #include "ESP8266WiFi.h"
 #include "SH1106Wire.h"
+#include "Screen.h"
 #include <Adafruit_NeoPixel.h>
 
 // #include "Graphics.h"
@@ -10,7 +11,7 @@
 
 extern Adafruit_NeoPixel pixels;
 extern uint8_t scrollIndex;
-extern SH1106Wire display;
+extern OLEDDisplay& display;
 
 // extern MenuInterface monitorPackets;
 // extern uint8_t* attack_bits;

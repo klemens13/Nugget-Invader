@@ -4,8 +4,9 @@
 #include "SH1106Wire.h"
 #include "Buttons.h"
 #include "WiFiScanner.h"
+#include "Screen.h"
 
-extern SH1106Wire display;
+extern OLEDDisplay& display; // bound to SH1106 or SSD1306 after auto-detect
 extern Buttons nuggButtons;
 
 extern uint8_t scrollIndex;
